@@ -279,6 +279,14 @@
                     this.stop_listening_incoming_message(oldAccount);
                     this.listen_incoming_message();
                     this.isAttached = true;
+                } else {
+                    //If it's already attached and account is different
+                    //Reattach
+                    if (newAccount.name !== oldAccount.name) {
+                        this.stop_listening_incoming_message(oldAccount);
+                        this.listen_incoming_message();
+                        this.isAttached = true;
+                    }
                 }
             }
         },
