@@ -7,7 +7,7 @@
         <p v-if="vertx_eb.state == 3" class="connect-status">disconnected <button v-on:click="logout" class="logout">logout</button></p>
         <div class="main">
             <contacts v-on:contacts-loaded="onContactsLoaded" v-on:open-chat="onOpenChat"></contacts>
-            <chats :user="active_contact"></chats>
+            <chats :active_account="active_contact" :chats="messages"></chats>
         </div>
     </div>
 </template>
@@ -63,6 +63,7 @@
 <script>
     import Contacts from "./Contacts";
     import Chats from "./Chats";
+    import {EventBus} from "../events";
 
 
     export default {
@@ -73,26 +74,61 @@
         name: 'conversations',
         data() {
             return {
-                conversations: [],
-                active_contact:{
-                    name: "Fola Shade"
-                }
+                messages: [],
+                active_contact:{},
+                user: JSON.parse(localStorage.getItem('user')),
             }
         },
         methods: {
             onContactsLoaded: function (contacts)  {
-                //Assign the first loaded contact as the active contact
                 this.active_contact = contacts[0]; //First contact
+                this.getConversation();
             },
             onOpenChat: function (contact) {
                 //Assign the selected contact as the active contact
                 //So that the conversations can be loaded
                 this.active_contact = contact;
+                this.getConversation();
             },
             logout: function (e) {
                 e.preventDefault();
+                this.request('logout', this.user, function(err, callback) {
+                    if (!err) {
+                    }
+                });
                 localStorage.removeItem('user');
                 this.$router.replace('/');
+            },
+            getConversation: function() {
+                //Assign the first loaded contact as the active contact
+                const self = this;
+                //Reset the content
+                self.messages = [];
+
+                const user = JSON.parse(localStorage.getItem('user'));
+                const get_conversation = function() {
+                    if (user === null || self.active_contact === null) {
+                        return;//Don't execute
+                    }
+                    self.request('get-conversation', { owner : user, resp: self.active_contact }, (err, message) => {
+                        if (err) {
+                            console.log("Something happened - get-conversation");
+                        } else {
+                            console.log('conversation retrieved');
+                            self.messages = message.body;
+                        }
+                    });
+                };
+
+                //Check if vertx is already connected
+                if (this.vertx_eb.state === 1) {
+                    get_conversation();
+                } else {
+                    //Wait for app to get connected
+                    EventBus.$on('app.connected', () => {
+                        get_conversation();
+                    });
+                }
             }
         }
     }

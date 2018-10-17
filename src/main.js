@@ -29,6 +29,20 @@ Vue.mixin({
                 return '127.0.0.1:8081';
             }
         }
+    },
+    methods: {
+        request: function(action, data, callback) {
+            try {
+                const _data = {
+                    action: action,
+                    data: data
+                };
+                this.vertx_eb.send("api.data", _data, {}, callback);
+            } catch (e) {
+                console.error(e);
+                callback(e, null);
+            }
+        }
     }
 });
 

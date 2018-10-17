@@ -26,17 +26,13 @@
                     this.error = "Name is too short"
                 } else {
                     const self = this;
-                    this.$http.post("http://"+this.api+"/login", { name:this.name })
-                        .then(function(data) {
-                            console.log('Success');
-                            console.log(data);
-                        }, function(error) {
-                            self.error = "FAILED TO CONNECT";
-                        });
-                    localStorage.setItem("user", JSON.stringify({
-                        name:this.name,
-                    }));
-                    this.$router.replace('conversations');
+                    let data = { name: this.name, status:'online'};
+                    this.request('login', data, function(err, callback) {
+                        if (!err) {
+                            localStorage.setItem("user", JSON.stringify(data));
+                            self.$router.replace('conversations');
+                        }
+                    });
                 }
             }
         }

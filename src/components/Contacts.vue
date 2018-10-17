@@ -41,11 +41,12 @@
     .contact-name > p {
         margin: 0;
         line-height: 20px;
+        text-transform: lowercase;
     }
 
     .contacts {
-        height: 400px;
-        max-height: 400px;
+        height: 550px;
+        max-height: 550px;
         overflow-y: auto;
         text-decoration: none;
         margin: 0;
@@ -69,24 +70,29 @@
     }
 </style>
 <script>
-    import { EventBus } from '../events.js';
+    import {EventBus} from '../events.js';
 
     export default {
         name: 'contacts',
         data() {
             return {
-                contacts:[
-                    {
-                        name: 'Ayomide Fagbohungbe',
-                        status: 'online',
-                        id:'1ia9dfa'
-                    }
-                ]
+                contacts: [],
+                isAttached: false,
+                user: JSON.parse(localStorage.getItem('user')),
             }
         },
         methods: {
             open_chat(contact) {
                 this.$emit('open-chat', contact);
+            },
+            user_event_listener: function (err, message) {
+                let event = message.body;
+                if (event.action === "loggedin") {
+                    this.contacts.push(event.data);
+                } else if (event.action === "loggedout") {
+                    this.contacts.splice(this.contacts.indexOf(event.data), 1);
+                }
+                this.$emit('contacts-loaded', this.contacts);
             }
         },
         mounted() {
@@ -94,24 +100,32 @@
             //emit event when contacts finished loading
 
             EventBus.$on('app.connected', () => {
-                const data = {
-                    action: "get-conversations",
-                    data: JSON.parse(localStorage.getItem('user'))
-                };
-
-                this.vertx_eb.send("api.data", data, {}, (err, message) => {
+                if (self.user === null) {
+                    return;
+                }
+                self.request("get-contacts", self.user, (err, message) => {
                     if (err) {
                         console.log('Something happened');
                         console.error(err);
                     } else {
+                        if (message.body === null || message.body.length <= 0) {
+                            return;
+                        }
                         self.contacts = message.body;
                         console.log(message.body);
                         console.log(self.contacts[0].name);
                         this.$emit('contacts-loaded', self.contacts);
                     }
                 });
-            });
 
+                if (!self.isAttached) {
+                    self.vertx_eb.registerHandler("users.data", this.user_event_listener);
+                    self.isAttached = true;
+                }
+            });
+        },
+        destroyed() {
+            this.vertx_eb.unregisterHandler("users.data", this.user_event_listener);
         }
     }
 </script>

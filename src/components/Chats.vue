@@ -1,24 +1,25 @@
 <template>
     <div class="conversation-holder">
-        <div class="error-holder" v-if="messages.length == 0">
+        <div class="header">
+            <img class="round-img" src="../assets/logo.png">
+            <div class="contact-name">
+                <h4>{{active_account.name}}</h4>
+                <p>{{active_account.status}}</p>
+            </div>
+        </div>
+        <div class="error-holder" v-if="chats.length == 0">
             <img src="../assets/logo.png"/>
             <h3>NO CONVERSATIONS</h3>
         </div>
-        <div class="header" v-if="messages.length > 0">
-            <img class="round-img" src="../assets/logo.png">
-            <div class="contact-name">
-                <h4>Ayomide Fagbohungbe</h4>
-                <p>Message</p>
-            </div>
-        </div>
-        <ul class="chats" v-if="messages.length > 0">
-            <li class="chat" v-for="message in 20" :class="{recieve : message % 3 == 1 }">
-                <p>Plenty message Plenty message lenty message Plenty messagelenty message Plenty messagelenty message Plenty messagelenty message Plenty messagelenty message Plenty messagelenty message Plenty messagelenty message Plenty messagelenty message Plenty messagelenty message Plenty messagelenty message Plenty messagelenty message Plenty messagelenty message Plenty messagelenty message Plenty messagelenty message Plenty messagelenty message Plenty messagelenty message Plenty messagelenty message Plenty messagelenty message Plenty messagelenty message Plenty messagelenty message Plenty messagelenty message Plenty message</p>
+        <ul id="chats-holder" class="chats" v-if="chats.length > 0">
+            <li class="chat" v-for="(chat, index) in chats" :class="{recieve : chat.sender !== user.name }">
+                <p>{{chat.message}}</p>
+                <span>{{chat.time}}</span>
             </li>
         </ul>
-        <div class="chat-input" v-if="messages.length > 0">
-            <textarea placeholder="Enter message" v-model="message"></textarea>
-            <button v-on:click="send_message(message)" v-on:keyup="typing">SEND</button>
+        <div class="chat-input">
+            <textarea placeholder="Enter message" v-model="message" v-on:keyup.enter="send_message"></textarea>
+            <button v-on:click="send_message" v-on:keyup="typing">SEND</button>
         </div>
     </div>
 </template>
@@ -62,12 +63,25 @@
         font-size: 14px;
         line-height: 20px;
         max-width: 70%;
-        padding: 6px 10px;
+        padding: 8px 16px;
         text-align: left;
         overflow-wrap: break-word;
         border-radius: 4px;
-        margin: 8px 16px;
-        box-shadow: 0 3px 6px rgba(0, 0, 0, 0.16), 0 3px 6px rgba(0, 0, 0, 0.23);
+        margin: 8px 16px 4px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24);
+    }
+
+    .chats .chat span {
+        text-align: end;
+        width: 100%;
+        float: right;
+        font-size: 11px;
+        font-weight: bold;
+        margin: 0 18px 8px;
+    }
+    .chats .chat.recieve span {
+        float:left;
+        text-align: start;
     }
 
     .chats .chat.recieve p {
@@ -83,7 +97,7 @@
         justify-content: center;
         align-content: center;
         align-items: center;
-        height: 50px;
+        min-height: 50px;
     }
 
     .contact-name {
@@ -177,33 +191,103 @@
     export default {
         name: 'chats',
         props: {
-            user: {
+            chats: {
+                type: Array,
+                default: () => {
+                    return [];
+                }
+            },
+            active_account: {
                 type: Object,
                 default: () => {
-                    return {
-                        name: 'Ayomide'
-                    };
+                    return {};
                 }
             }
         },
         data() {
             return {
-                messages: [
-                    {
-                        name: 1
-                    }
-                ],
-                message: ''
+                message:'',
+                user: JSON.parse(localStorage.getItem('user')),
+                conversation_id :"",
+                isAttached: false,
             }
         },
         methods: {
-            send_message: (message) => {
-                console.log('ouput -> ' + message);
+            send_message: function () {
+                if (this.message.length > 0) {
+                    const self = this;
+
+                    const data = {
+                        message : {
+                            message:this.message,
+                            sender:this.user.name,
+                            time:new Date().toDateString()
+                        },
+                        owner : this.user,
+                        resp: this.active_account
+                    };
+
+                    self.request('send-message', data, (err, message) => {
+                        if (err) {
+                            console.log("Message not sent");
+                        } else {
+                            console.log('Message sent');
+//                            self.chats.push(data.message);
+                        }
+                    });
+                    this.message = ''; //Reset message
+                }
             },
-            typing: (e) => {
+            typing: function () {
                 console.log('Typing');
                 console.log(e);
+            },
+            scroll_to_end() {
+                const container = this.$el.querySelector("#chats-holder");
+                if (container !== null && container.scrollHeight !== null) {
+                    container.scrollTop = container.scrollHeight;
+                }
+            },
+            create_conversation_id(user_name, selected_name) {
+                return "message.data." + (user_name + "-" + selected_name).toLowerCase();
+            },
+            listen_incoming_message() {
+                const self = this;
+                this.conversation_id = this.create_conversation_id(this.user.name, this.active_account.name);
+
+                console.log('Listening for conversation -> '+this.conversation_id);
+
+                this.vertx_eb.registerHandler(this.conversation_id, this.event_listener);
+            },
+            event_listener : function(error, data) {
+                if (!error) {
+                    console.log(data.body);
+                    this.chats.push(data.body.message);
+                }
+            },
+            stop_listening_incoming_message(oldAccount) {
+                if (oldAccount !== null) {
+                    const old_conversation_id = this.create_conversation_id(this.user.name, oldAccount.name);
+                    console.log('removing conversation id -> ' + old_conversation_id);
+                    this.vertx_eb.unregisterHandler(old_conversation_id, this.event_listener);
+                }
             }
+        },
+        watch : {
+            active_account: function (newAccount, oldAccount) {
+                if (!this.isAttached) {
+                    this.stop_listening_incoming_message(oldAccount);
+                    this.listen_incoming_message();
+                    this.isAttached = true;
+                }
+            }
+        },
+        mounted() {
+            //Scroll the chat to the bottom
+            this.scroll_to_end();
+        },
+        updated() {
+            this.scroll_to_end();
         }
     }
 </script>
