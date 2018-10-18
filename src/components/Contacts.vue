@@ -90,7 +90,7 @@
                 if (event.action === "loggedin") {
                     let isExist = false;
                     this.contacts.forEach(function(contact, index) {
-                        if (contact.name === event.data.name) {
+                        if (contact.name.toLowerCase() === event.data.name.toLowerCase()) {
                             contact.status = "online";
                             isExist = true;
                         }
@@ -100,7 +100,7 @@
                     }
                 } else if (event.action === "loggedout") {
                     this.contacts.forEach(function(contact, index) {
-                        if (contact.name === event.data.name) {
+                        if (contact.name.toLowerCase() === event.data.name.toLowerCase()) {
                             contact.status = "offline";
                         }
                     });
