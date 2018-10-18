@@ -3,7 +3,7 @@
         <h1>LOGIN</h1>
         <div class="card">
             <img src="../assets/logo.png">
-            <input placeholder="ENTER FIRST NAME" v-model="name"/>
+            <input placeholder="ENTER FIRST NAME" v-model="name" v-on:keyup.enter="login"/>
             <p v-if="error.length > 0">{{error}}</p>
             <button v-on:click="login">ENTER</button>
         </div>
