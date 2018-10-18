@@ -88,11 +88,23 @@
             user_event_listener: function (err, message) {
                 let event = message.body;
                 if (event.action === "loggedin") {
-                    this.contacts.push(event.data);
+                    let isExist = false;
+                    this.contacts.forEach(function(contact, index) {
+                        if (contact.name === event.data.name) {
+                            contact.status = "online";
+                            isExist = true;
+                        }
+                    });
+                    if (!isExist) {
+                        this.contacts.push(event.data);
+                    }
                 } else if (event.action === "loggedout") {
-                    this.contacts.splice(this.contacts.indexOf(event.data), 1);
+                    this.contacts.forEach(function(contact, index) {
+                        if (contact.name === event.data.name) {
+                            contact.status = "offline";
+                        }
+                    });
                 }
-//                this.$emit('contacts-loaded', this.contacts);
             }
         },
         mounted() {

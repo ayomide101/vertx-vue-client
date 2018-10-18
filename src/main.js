@@ -19,10 +19,12 @@ Vue.mixin({
                     EventBus.$emit('app.connected');
                 };
                 vert_eb.onerror = (err) => {
-                    console.log('Error occured');
+                    console.log('Error occurred');
                     console.log(err);
                     EventBus.$emit('app.disconnected');
                 };
+
+                vert_eb.enableReconnect(true);
                 return vert_eb;
             },
             get api() {
