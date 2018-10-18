@@ -105,12 +105,12 @@
                 //Reset the content
                 self.messages = [];
 
-                const user = JSON.parse(localStorage.getItem('user'));
                 const get_conversation = function() {
-                    if (user === null || self.active_contact === null) {
+                    if (self.user === null || self.active_contact === null) {
                         return;//Don't execute
                     }
-                    self.request('get-conversation', { owner : user, resp: self.active_contact }, (err, message) => {
+                    console.log(`Getting conversation for -> ${self.user.name}-${self.active_contact.name}`);
+                    self.request('get-conversation', { owner : self.user, resp: self.active_contact }, (err, message) => {
                         if (err) {
                             console.log("Something happened - get-conversation");
                         } else {

@@ -92,7 +92,7 @@
                 } else if (event.action === "loggedout") {
                     this.contacts.splice(this.contacts.indexOf(event.data), 1);
                 }
-                this.$emit('contacts-loaded', this.contacts);
+//                this.$emit('contacts-loaded', this.contacts);
             }
         },
         mounted() {
