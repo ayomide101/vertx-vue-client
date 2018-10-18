@@ -1,6 +1,6 @@
 <template>
     <div>
-        <h1>CONVERSATIONS</h1>
+        <h1>Welcome, {{user.name}}</h1>
         <p v-if="vertx_eb.state == 0" class="connect-status">connecting... <button v-on:click="logout" class="logout">logout</button></p>
         <p v-if="vertx_eb.state == 1" class="connect-status">connected <button v-on:click="logout" class="logout">logout</button></p>
         <p v-if="vertx_eb.state == 2" class="connect-status">disconnecting... <button v-on:click="logout" class="logout">logout</button></p>
